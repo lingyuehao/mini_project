@@ -1,4 +1,4 @@
-name: main
+name: mini_project
 
 on:
   push:
