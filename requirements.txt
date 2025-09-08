@@ -6,3 +6,4 @@ polars
 numpy
 matplotlib
 pandas
+pytest
