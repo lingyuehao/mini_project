@@ -1,9 +1,7 @@
 pylint
 flake8
-pytest
 click
 black
-pytest-cov
 polars
 numpy
 matplotlib
