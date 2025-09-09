@@ -2,7 +2,7 @@ pylint
 flake8
 click
 black
-polars
+polars-lts-cpu
 numpy
 matplotlib
 pandas
