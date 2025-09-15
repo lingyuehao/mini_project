@@ -7,3 +7,5 @@ numpy
 matplotlib
 pandas
 pytest
+scikit-learn
+seaborn
