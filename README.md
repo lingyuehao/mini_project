@@ -1,28 +1,102 @@
 [![main](https://github.com/lingyuehao/mini_project/actions/workflows/main.yml/badge.svg)](https://github.com/lingyuehao/mini_project/actions/workflows/main.yml)
 
 # mini_project
-
-## Setup Instructions：
-
-1. Clone or download the repository to your local machine.
-```python
-git clone https://github.com/lingyuehao/mini_project.git
-```
-2. Install required dependencies:
-```python
-pip install pandas polars numpy scikit-learn seaborn matplotlib
-```
-3. Run the project
-```python
-python work.py
-```
-
 ## Project goal
 The purpose of this project is to analyze consumer behavior data using both Pandas and Polars. Specifically, the project aims to:
 - Compare the performance of Pandas and Polars in data import, inspection, and grouping.
 - Explore consumer insights by filtering and grouping data (e.g., purchase amount by demographics).
 - Apply a machine learning model (Random Forest Regressor) to predict purchase amounts and evaluate model performance.
 - Visualize findings with a pie chart of shopping device distribution and a bar chart of average customer satisfaction by income level.
+
+
+## Repo Structure
+```python
+mini_project/
+├─ work.py               # main analysis script (pandas + polars + RF + charts)
+├─ test_work.py          # pytest (pandas unit, polars unit, system tests)
+├─ ecb.csv               # dataset (place here)
+├─ requirements.txt      # runtime deps (pandas, polars-lts-cpu, numpy, sklearn, seaborn, matplotlib, pytest, etc.)
+├─ Dockerfile            # container image; default CMD runs tests (pytest -q test_work.py)
+├─ .devcontainer/
+│  └─ devcontainer.json  # VS Code Dev Container config
+├─ .github/workflows/
+│  └─ main.yml           # (optional) CI running pytest on push
+├─ test_pass.png         # screenshot of passing tests (for submission)
+└─ README.md
+```
+
+## Setup Instructions and Use Guide：
+You can run this project in three ways. Pick one.
+### A) Local Python
+1. Clone or download the repository to your local machine.
+```python
+git clone https://github.com/lingyuehao/mini_project.git
+```
+2. Install required dependencies:
+```python
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+3. Run the project
+```python
+pytest -q (run tests)          
+python work.py (run analysis)
+```
+
+### B) VS Code Dev Container
+1. Install Docker Desktop and VS Code with the Dev Containers extension.
+
+2. Open the repo folder in VS Code → bottom-right prompt “Reopen in Container”.
+   
+3. Wait for the build to finish (it installs everything from requirements.txt).
+
+4. In the integrated terminal (inside the container):
+```python
+pytest -q (run tests)          
+python work.py (run analysis)
+```
+
+### C）Docker
+The Docker image is set to run tests by default.
+```python
+# build
+docker build -t mini-project .
+
+# run tests (default CMD)
+docker run --rm mini-project
+
+# run the analysis instead of tests
+docker run --rm mini-project python work.py
+```
+
+
+## Test Description and how to run tests
+### Pandas Unit tests
+- Data loading: DataFrame non-empty; required columns exist.
+- Preprocessing: Purchase_Amount is numeric and non-negative.
+- Grouping Case 1: correct structure (mean, MultiIndex) and row count matches unique (Gender, Education_Level) pairs with non-null amounts.
+- Grouping Case 2: columns present (avg_satisfaction, purchase_count), ranges valid (satisfaction in [0,10], counts > 0).
+- Edge case: empty selection grouped does not crash (returns empty frame).
+
+### Polars Unit tests
+- Data loading with required columns.
+- Preprocessing type: Purchase_Amount is float and non-negative.
+- Grouping Case 1: keys and mean present.
+- Grouping Case 2: columns present and purchase_count is integer (signed or unsigned), counts ≥ 1.
+- Edge case: empty selection grouped returns empty DataFrame.
+
+### System tests
+- Cross-library agreement: Pandas vs Polars results for Case 1 & Case 2 match (values & counts).
+- Case 2 index equals unique Payment_Method among Smartphone shoppers.
+- End-to-end: prediction length equals test set length.
+- ML table integrity: features are numeric/bool, no NaNs.
+- Split policy: 80/20 (sklearn’s ceil behavior for test size).
+- Model behavior: feature importance vector length & ~sum==1; RMSE ≥ 0; -1 ≤ R² ≤ 1.
+- Reproducibility: random_state = 17.
+
+### How to run tests?
+- Dev Container / Local: pytest -q
+- Docker: default CMD already runs pytest -q test_work.py.
 
 
 ## Data source
