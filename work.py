@@ -178,7 +178,16 @@ plt.show()
 
 #Graph 2
 plt.figure(figsize=(10,6))
-sns.barplot(data=df_pd, x="Income_Level", y="Customer_Satisfaction", ci=None, palette="pastel")
+sns.barplot(
+    data=df_pd,
+    x="Income_Level",
+    y="Customer_Satisfaction",
+    errorbar=None,           
+    hue="Income_Level",     
+    palette="pastel",
+    legend=False,            
+    dodge=False,            
+)
 plt.title("Average Customer Satisfaction by Income Level")
 plt.xlabel("Income Level")
 plt.ylabel("Average Satisfaction")
