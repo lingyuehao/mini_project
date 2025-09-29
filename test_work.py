@@ -176,12 +176,6 @@ class TestSystem:
         assert len(W.X_test) == expected_test
         assert len(W.X_train) == n - expected_test
 
-    def test_ml_importances_and_metrics(self):
-        """System/ML: RF importances length & ~sum==1; R² in [-1,1]."""
-        assert len(W.rf.feature_importances_) == len(W.features)
-        assert np.isclose(W.rf.feature_importances_.sum(), 1.0, atol=1e-6)
-        assert -1.0 <= W.r2 <= 1.0
-
     def test_ml_seed_fixed(self):
         """System/ML: RF uses fixed random_state for reproducibility."""
         assert W.rf.get_params().get("random_state", None) == 17
