@@ -3,10 +3,10 @@ install:
 	 pip install -r requirements.txt
 
 format:
-	 black *.py
+	 black .
 
 lint:
-	 flake8 *.py
+	 flake8 --ignore=E501 .
 
 test:
 	 pytest -vv --cov=. --maxfail=1

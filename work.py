@@ -9,140 +9,143 @@ from sklearn.metrics import mean_squared_error, r2_score
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
+def timed_execution(func, *args, **kwargs):
+    start = time.time()
+    result = func(*args, **kwargs)
+    end = time.time()
+    print(f"{func.__name__} completed in {end - start:.6f} seconds")
+    return result
+
+
+def check_missing(df):
+    if isinstance(df, pd.DataFrame):
+        print("\n--- Missing Values per Column ---")
+        print(df.isnull().sum())
+        print("\n--- Total Missing Values ---")
+        print(df.isnull().sum().sum())
+    elif isinstance(df, pl.DataFrame):
+        print("\n--- Missing Values per Column ---")
+        print(df.null_count())
+        print("\n--- Total Missing Values ---")
+        print(df.null_count().to_numpy().sum())
+
+
+def evaluate_model(model, X_test, y_test, features):
+    y_pred = model.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+    print("\n--- Model Evaluation ---")
+    print("RMSE:", round(rmse, 3))
+    print("R²:", round(r2, 3))
+    importance = pd.DataFrame(
+        {"Feature": features, "Importance": model.feature_importances_}
+    ).sort_values(by="Importance", ascending=False)
+    print("\nFeature Importances:")
+    print(importance)
+
+
 # Import the Dataset using pandas and polars
-csv_file = "ecb.csv"
- 
-start = time.time()
-df_pd = pd.read_csv(csv_file)
-end = time.time()
-print(f"Pandas Import completed in {end - start:.6f} seconds")
+input_file = "ecb.csv"
+df_pandas = pd.read_csv(input_file)
+df_polars = pl.read_csv(input_file)
 
-start = time.time()
-df_pl = pl.read_csv(csv_file)
-end = time.time()
-print(f"Polars Import completed in {end - start:.6f} seconds")
+df_pandas = timed_execution(pd.read_csv, input_file)
+df_polars = timed_execution(pl.read_csv, input_file)
 
-
-# Inspect the Dataset using pandas and polars
-start = time.time()
+# Inspect the Dataset using pandas
 print("\n--- First 6 rows using pandas---")
-print(df_pd.head(6))
-
+print(df_pandas.head(6))
 print("\n--- Info ---")
-print(df_pd.info())
-
+print(df_pandas.info())
 print("\n--- Summary Statistics ---")
-print(df_pd.describe())
+print(df_pandas.describe())
+check_missing(df_pandas)
 
-print("\n--- Missing Values per Column ---")
-print(df_pd.isnull().sum())
-
-print("\n--- Total Missing Values ---")
-print(df_pd.isnull().sum().sum())
-end = time.time()
-print(f"\nPandas Inspection completed in {end - start:.6f} seconds")
-
-
-start = time.time()
+# Inspect the Dataset using polars
 print("\n--- First 6 rows using polars ---")
-print(df_pl.head(6))
-
+print(df_polars.head(6))
 print("\n--- Schema ---")
-print(df_pl.schema)
-
+print(df_polars.schema)
 print("\n--- Summary Statistics ---")
-print(df_pl.describe())
-
-print("\n--- Missing Values per Column ---")
-print(df_pl.null_count())
-
-print("\n--- Total Missing Values ---")
-print(df_pl.null_count().to_numpy().sum())
-end = time.time()
-print(f"\nPolars Inspection completed in {end - start:.6f} seconds")
-
-
-# Basic Filtering and Grouping using pandas and polars
+print(df_polars.describe())
+check_missing(df_polars)
 
 # Case 1: Average Purchase Amount (by Gender and Education Level)
-start = time.time()
-df_pd["Purchase_Amount"] = pd.to_numeric(
-    df_pd["Purchase_Amount"].replace(r"[^\d.]", "", regex=True),
-    errors="coerce"
+df_pandas["Purchase_Amount"] = pd.to_numeric(
+    df_pandas["Purchase_Amount"].replace(r"[^\d.]", "", regex=True), errors="coerce"
 )
-gender_edu_purchase = df_pd.groupby(["Gender", "Education_Level"])["Purchase_Amount"].agg(["mean"])
+gender_edu_purchase = timed_execution(
+    lambda d: d.groupby(["Gender", "Education_Level"])["Purchase_Amount"].agg(["mean"]),
+    df_pandas,
+)
 print(gender_edu_purchase)
-end = time.time()
-print(f"\nPandas completed case 1 in {end - start:.6f} seconds")
 
-
-start = time.time()
-df_pl = df_pl.with_columns(
+df_polars = df_polars.with_columns(
     pl.col("Purchase_Amount")
-      .str.replace_all(r"[^\d.]", "")    
-      .cast(pl.Float64)
-      .alias("Purchase_Amount")
+    .str.replace_all(r"[^\d.]", "")
+    .cast(pl.Float64)
+    .alias("Purchase_Amount")
 )
-
-gender_edu_purchase_pl = (
-    df_pl.group_by(["Gender", "Education_Level"])
-         .agg([
-             pl.col("Purchase_Amount").mean().alias("mean")
-         ])
-         .sort(["Gender", "Education_Level"])    
+gender_edu_purchase_pl = timed_execution(
+    lambda d: d.group_by(["Gender", "Education_Level"])
+    .agg([pl.col("Purchase_Amount").mean().alias("mean")])
+    .sort(["Gender", "Education_Level"]),
+    df_polars,
 )
 print(gender_edu_purchase_pl)
-end = time.time()
-print(f"\nPolars completed case 1in {end - start:.6f} seconds")
 
-# Case 2: Smartphone shoppers and Group by Payment_Metho (using pandas and polars)
-start = time.time()
-subset_pd = df_pd[df_pd["Device_Used_for_Shopping"] == "Smartphone"]
-case2_pd = (
-    subset_pd.groupby("Payment_Method")
-             .agg({"Customer_Satisfaction": "mean", "Customer_ID": "count"})
-             .rename(columns={"Customer_Satisfaction": "avg_satisfaction", 
-                              "Customer_ID": "purchase_count"})
+# Case 2: Smartphone shoppers and Group by Payment_Method
+subset_pd = df_pandas[df_pandas["Device_Used_for_Shopping"] == "Smartphone"]
+smartphone_stats_pd = timed_execution(
+    lambda s: s.groupby("Payment_Method")
+    .agg({"Customer_Satisfaction": "mean", "Customer_ID": "count"})
+    .rename(
+        columns={
+            "Customer_Satisfaction": "avg_satisfaction",
+            "Customer_ID": "purchase_count",
+        }
+    ),
+    subset_pd,
 )
-print(case2_pd)
-end = time.time()
-print(f"Pandas completed Case 2 in {end - start:.6f} seconds")
+print(smartphone_stats_pd)
 
-
-start = time.time()
-subset_pl = df_pl.filter(pl.col("Device_Used_for_Shopping") == "Smartphone")
-case2_pl = (
-    subset_pl.group_by("Payment_Method")
-             .agg([
-                 pl.col("Customer_Satisfaction").mean().alias("avg_satisfaction"),
-                 pl.count("Customer_ID").alias("purchase_count")
-             ])
+subset_pl = df_polars.filter(pl.col("Device_Used_for_Shopping") == "Smartphone")
+smartphone_stats_pl = timed_execution(
+    lambda s: s.group_by("Payment_Method").agg(
+        [
+            pl.col("Customer_Satisfaction").mean().alias("avg_satisfaction"),
+            pl.count("Customer_ID").alias("purchase_count"),
+        ]
+    ),
+    subset_pl,
 )
-print(case2_pl)
-end = time.time()
-print(f"Polars completed case 2 in {end - start:.6f} seconds")
-
+print(smartphone_stats_pl)
 
 # Explore a Machine Learning Algorithm (Random Forest)
 features = [
-    "Product_Rating", "Return_Rate",
-    "Purchase_Channel", "Discount_Sensitivity",
-    "Brand_Loyalty", "Customer_Loyalty_Program_Member",
-    "Social_Media_Influence", "Purchase_Intent",
-    "Age", "Income_Level"
+    "Product_Rating",
+    "Return_Rate",
+    "Purchase_Channel",
+    "Discount_Sensitivity",
+    "Brand_Loyalty",
+    "Customer_Loyalty_Program_Member",
+    "Social_Media_Influence",
+    "Purchase_Intent",
+    "Age",
+    "Income_Level",
 ]
 target = "Purchase_Amount"
 
- 
-df_ml = df_pd.copy()
-df_ml = df_ml.dropna(subset=features + [target])
+ml_dataset = df_pandas.copy()
+ml_dataset = ml_dataset.dropna(subset=features + [target])
 
 for col in features:
-    if df_ml[col].dtype == "object" or df_ml[col].dtype.name == "category":
-        df_ml[col] = LabelEncoder().fit_transform(df_ml[col])
+    if ml_dataset[col].dtype == "object" or ml_dataset[col].dtype.name == "category":
+        ml_dataset[col] = LabelEncoder().fit_transform(ml_dataset[col])
 
-X = df_ml[features]
-y = df_ml[target]
+X = ml_dataset[features]
+y = ml_dataset[target]
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=17
 )
@@ -150,46 +153,50 @@ X_train, X_test, y_train, y_test = train_test_split(
 rf = RandomForestRegressor(n_estimators=300, random_state=17)
 rf.fit(X_train, y_train)
 
-y_pred = rf.predict(X_test)
-rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-r2 = r2_score(y_test, y_pred)
-
-print("\n--- Random Forest Results---")
-print("RMSE:", round(rmse, 3))
-print("R²:", round(r2, 3))
-
-importance = pd.DataFrame({
-    "Feature": features,
-    "Importance": rf.feature_importances_
-}).sort_values(by="Importance", ascending=False)
-
-print("\nFeature Importances:")
-print(importance)
-
+evaluate_model(rf, X_test, y_test, features)
 
 # Visualization
+# Plot 1
+df_pandas["Purchase_Amount"] = pd.to_numeric(
+    df_pandas["Purchase_Amount"].replace(r"[^\d.]", "", regex=True), errors="coerce"
+)
+df_subset = df_pandas[df_pandas["Gender"].isin(["Male", "Female"])]
 
-#Graph 1
-device_counts = df_pd["Device_Used_for_Shopping"].value_counts()
-plt.figure(figsize=(10,6))
-plt.pie(device_counts, labels=device_counts.index)
-plt.title("Shopping Device Distribution")
+edu_order = ["High School", "Bachelor's", "Master's"]
+heatmap_data = (
+    df_subset.groupby(["Gender", "Education_Level"])["Purchase_Amount"]
+    .mean()
+    .unstack("Education_Level")[edu_order]
+)
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="Blues")
+plt.title("Mean Purchase Amount by Gender and Education Level")
+plt.xlabel("Education Level")
+plt.ylabel("Gender")
+plt.tight_layout()
 plt.show()
 
-#Graph 2
-plt.figure(figsize=(10,6))
-sns.barplot(
-    data=df_pd,
-    x="Income_Level",
-    y="Customer_Satisfaction",
-    errorbar=None,           
-    hue="Income_Level",     
-    palette="pastel",
-    legend=False,            
-    dodge=False,            
+# Plot 2
+avg_purchase = (
+    df_pandas.groupby("Purchase_Category")["Purchase_Amount"]
+    .mean()
+    .sort_values(ascending=False)
+    .reset_index()
 )
-plt.title("Average Customer Satisfaction by Income Level")
-plt.xlabel("Income Level")
-plt.ylabel("Average Satisfaction")
-plt.ylim(0, 10)   
+
+plt.figure(figsize=(12, 6))
+sns.barplot(
+    data=avg_purchase,
+    y="Purchase_Category",
+    x="Purchase_Amount",
+    hue="Purchase_Category",
+    palette=sns.color_palette("Blues", n_colors=len(avg_purchase))[::-1],
+    orient="h",
+    legend=False,
+)
+plt.title("Average Purchase Amount by Category")
+plt.xlabel("Average Purchase Amount ($)")
+plt.ylabel("Purchase Category")
+plt.tight_layout()
 plt.show()
