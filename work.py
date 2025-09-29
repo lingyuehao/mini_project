@@ -170,12 +170,15 @@ heatmap_data = (
 )
 
 plt.figure(figsize=(8, 6))
-sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="Blues")
+ax = sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="Blues")
 plt.title("Mean Purchase Amount by Gender and Education Level")
 plt.xlabel("Education Level")
 plt.ylabel("Gender")
+cbar = ax.collections[0].colorbar
+cbar.set_label("Purchase Amount ($)")
 plt.tight_layout()
 plt.show()
+
 
 # Plot 2
 avg_purchase = (
