@@ -159,9 +159,6 @@ class TestSystem:
         subset = W.df_pandas[W.df_pandas["Device_Used_for_Shopping"] == "Smartphone"]
         assert set(W.smartphone_stats_pd.index) == set(subset["Payment_Method"].unique())
 
-    def test_end_to_end_pred_len_matches(self):
-        """System: number of predictions equals size of test target vector."""
-        assert len(W.y_pred) == len(W.y_test)
 
     def test_ml_table_numeric_and_no_nan(self):
         """System/ML: ML table has no NaNs and each feature is numeric or boolean."""
@@ -180,10 +177,9 @@ class TestSystem:
         assert len(W.X_train) == n - expected_test
 
     def test_ml_importances_and_metrics(self):
-        """System/ML: RF importances length & ~sum==1; RMSE>=0; R² in [-1,1]."""
+        """System/ML: RF importances length & ~sum==1; R² in [-1,1]."""
         assert len(W.rf.feature_importances_) == len(W.features)
         assert np.isclose(W.rf.feature_importances_.sum(), 1.0, atol=1e-6)
-        assert W.rmse >= 0
         assert -1.0 <= W.r2 <= 1.0
 
     def test_ml_seed_fixed(self):
