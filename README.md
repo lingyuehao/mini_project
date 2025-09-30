@@ -8,6 +8,7 @@ I examine a dataset on consumer behavior to identify which product categories an
 ```python
 mini_project/
 ├── work.py                  # main analysis script
+├── features.py              # Exported features
 ├── test_work.py             # pytest suite (unit + system tests)
 ├── ecb.csv                  # dataset
 ├── requirements.txt       
@@ -149,7 +150,7 @@ I compared data ingestion speeds by timing each read_csv call wrapped with a tim
 
 ### Step 2 – Data Inspection.
 
-I quickly inspected the data using Pandas by calling head, info, describe, and checking for missing values and using Polars by calling the schema, describe, and null counts. These inspection calls were not benchmarked; only the reads were.
+I quickly inspected the data using Pandas by calling head, info, describe, and checking for missing values and using Polars by calling the schema, describe, and null counts. This dataset do not have missing values.
 
 ### Step 3 – Filtering and Grouping.
 

@@ -87,4 +87,4 @@ class TestSystem:
         assert len(W.X_train) == total_rows - expected_test
 
     def test_rf_seed(self):
-        assert W.rf.get_params().get("random_state") == 17
+        assert W.rf_model.get_params().get("random_state") == 17

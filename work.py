@@ -1,49 +1,11 @@
-import time
 import pandas as pd
 import polars as pl
-import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
 import seaborn as sns
 import matplotlib.pyplot as plt
-
-
-def timed_execution(func, *args, **kwargs):
-    start = time.time()
-    result = func(*args, **kwargs)
-    end = time.time()
-    print(f"{func.__name__} completed in {end - start:.6f} seconds")
-    return result
-
-
-def check_missing(df):
-    if isinstance(df, pd.DataFrame):
-        print("\n--- Missing Values per Column ---")
-        print(df.isnull().sum())
-        print("\n--- Total Missing Values ---")
-        print(df.isnull().sum().sum())
-    elif isinstance(df, pl.DataFrame):
-        print("\n--- Missing Values per Column ---")
-        print(df.null_count())
-        print("\n--- Total Missing Values ---")
-        print(df.null_count().to_numpy().sum())
-
-
-def evaluate_model(model, X_test, y_test, features):
-    y_pred = model.predict(X_test)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    print("\n--- Model Evaluation ---")
-    print("RMSE:", round(rmse, 3))
-    print("R²:", round(r2, 3))
-    importance = pd.DataFrame(
-        {"Feature": features, "Importance": model.feature_importances_}
-    ).sort_values(by="Importance", ascending=False)
-    print("\nFeature Importances:")
-    print(importance)
-
+from features import timed_execution, check_missing, evaluate_model
 
 # Import the Dataset using pandas and polars
 input_file = "ecb.csv"
@@ -150,10 +112,10 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=17
 )
 
-rf = RandomForestRegressor(n_estimators=300, random_state=17)
-rf.fit(X_train, y_train)
+rf_model = RandomForestRegressor(n_estimators=300, random_state=17)
+rf_model.fit(X_train, y_train)
 
-evaluate_model(rf, X_test, y_test, features)
+evaluate_model(rf_model, X_test, y_test, features)
 
 # Visualization
 # Plot 1
