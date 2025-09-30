@@ -2,27 +2,32 @@
 
 # mini_project
 ## Project goal
-The purpose of this project is to analyze consumer behavior data using both Pandas and Polars. Specifically, the project aims to:
-- Compare the performance of Pandas and Polars in data import, inspection, and grouping.
-- Explore consumer insights by filtering and grouping data (e.g., purchase amount by demographics).
-- Apply a machine learning model (Random Forest Regressor) to predict purchase amounts and evaluate model performance.
-- Visualize findings with a pie chart of shopping device distribution and a bar chart of average customer satisfaction by income level.
-
+I examine a dataset on consumer behavior to identify which product categories and demographic pairings influence purchase amount (AOV) and which dataframe engine provides the quickest analysis. I showcase the main trends using a gender×education heatmap and a ranked category bar chart, while also incorporating a small Random-Forest baseline to assess predictability.
 
 ## Repo Structure
 ```python
 mini_project/
-├─ work.py               # main analysis script (pandas + polars + RF + charts)
-├─ test_work.py          # pytest (pandas unit, polars unit, system tests)
-├─ ecb.csv               # dataset (place here)
-├─ requirements.txt      # runtime deps (pandas, polars-lts-cpu, numpy, sklearn, seaborn, matplotlib, pytest, etc.)
-├─ Dockerfile            # container image; default CMD runs tests (pytest -q test_work.py)
-├─ .devcontainer/
-│  └─ devcontainer.json  # VS Code Dev Container config
-├─ .github/workflows/
-│  └─ main.yml           # (optional) CI running pytest on push
-├─ test_pass.png         # screenshot of passing tests (for submission)
-└─ README.md
+├── work.py                  # main analysis script
+├── test_work.py             # pytest suite (unit + system tests)
+├── ecb.csv                  # dataset
+├── requirements.txt       
+├── Dockerfile               
+├── Makefile                  
+├── .github/
+│   └── workflows/
+│       └── main.yml         # CI: run pytest on push
+├── .devcontainer/
+│   └── devcontainer.json    
+├── .vscode/                 
+├── .gitignore             
+├── .dockerignore           
+├── Plot_1.png               # figure: Gender × Education heatmap
+├── Plot_2.png               # figure: Avg purchase by category
+├── test_pass.png            # screenshot of passing tests  
+├── workflows.png            # CI workflow screenshot
+├── commit_difference_1.png  # commit illustration  
+├── commit_difference_2.png  # commit illustration  
+└── README.md                # project overview and instructions
 ```
 
 ## Setup Instructions and Use Guide：
@@ -62,7 +67,7 @@ The Docker image is set to run tests by default.
 # build
 docker build -t mini-project .
 
-# run tests (default CMD)
+# run tests  
 docker run --rm mini-project
 
 # run the analysis instead of tests
@@ -71,37 +76,48 @@ docker run --rm mini-project python work.py
 
 
 ## Test Description and how to run tests
-### Pandas Unit tests
-- Data loading: DataFrame non-empty; required columns exist.
-- Preprocessing: Purchase_Amount is numeric and non-negative.
-- Grouping Case 1: correct structure (mean, MultiIndex) and row count matches unique (Gender, Education_Level) pairs with non-null amounts.
-- Grouping Case 2: columns present (avg_satisfaction, purchase_count), ranges valid (satisfaction in [0,10], counts > 0).
-- Edge case: empty selection grouped does not crash (returns empty frame).
+### Unit tests for Pandas
 
-### Polars Unit tests
-- Data loading with required columns.
-- Preprocessing type: Purchase_Amount is float and non-negative.
-- Grouping Case 1: keys and mean present.
-- Grouping Case 2: columns present and purchase_count is integer (signed or unsigned), counts ≥ 1.
-- Edge case: empty selection grouped returns empty DataFrame.
+- Loading: df_pandas holds data.
 
-### System tests
-- Cross-library agreement: Pandas vs Polars results for Case 1 & Case 2 match (values & counts).
-- Case 2 index equals unique Payment_Method among Smartphone shoppers.
-- End-to-end: prediction length equals test set length.
-- ML table integrity: features are numeric/bool, no NaNs.
-- Split policy: 80/20 (sklearn’s ceil behavior for test size).
-- Model behavior: feature importance vector length & ~sum==1; RMSE ≥ 0; -1 ≤ R² ≤ 1.
-- Reproducibility: random_state = 17.
+- Cleaning: Purchase_Amount must be a numerical value and cannot be less than zero.
+
+- Scenario 1 (Gender & Education): gender_edu_purchase includes an average column and has a MultiIndex structure.
+
+- Case 2 (Smartphone & Payment_Method): smartphone_stats_pd contains avg_satisfaction and purchase_count, with all purchase_count > 0.
+
+### Polars Unit Tests
+
+- Loading: df_polars is a non-empty pl.DataFrame that includes Purchase_Amount.
+
+- Cleaning: Values in Purchase_Amount that are not null are ≥ 0.
+
+- Scenario 1 (Gender & Education): gender_edu_purchase_pl contains an average column.
+
+### Testing of the system
+
+- Cross-library equivalence (Case 1): Generate Gender|Education_Level keys and verify that both Pandas and Polars have identical key sets and similar np.isclose means.
+
+- ML table integrity: In ml_dataset, each feature is either numeric or boolean, and both features and the target do not contain any NaN values.
+
+- Division of train/test: With test_size=0.2, the count of test rows equals ceil(0.2 * N); the training rows consist of the others.
+
+- RF reproducibility: RandomForestRegressor is configured with a random_state value of 17.
 
 ### How to run tests?
-- Dev Container / Local: pytest -q
-- Docker: default CMD already runs pytest -q test_work.py.
+```bash
+# Dev Container / Local
+pip install -r requirements.txt
+pytest -q test_work.py
 
+# Docker:
+docker build -t mini_project
+docker run --rm mini_project
+```
 
 ## Data source
 
-The project uses the Ecommerce Consumer Behavior Analysis Data, a comprehensive dataset designed for analyzing shopping trends and customer preferences. Think of this dataset as a profile of online shoppers. Each row is like a customer’s “digital footprint” — from who they are, how they shop, to why they make decisions.
+The dataset utilized for this project focuses on Ecommerce Consumer Behavior Analysis and is built for carrying out trend and preference analysis in Infomediary Ecommerce. The dataset provides a comprehensive profile of online shoppers. Each record describes a customers’ “digital footprint”; detailing information on their demographics, shopping habits, and the rationale behind their purchasing decisions.
 
 Link to dataset: https://www.kaggle.com/datasets/salahuddinahmedshuvo/ecommerce-consumer-behavior-analysis-data/data
 
@@ -116,71 +132,39 @@ Purpose: helps us segment customers into meaningful groups
 Purchase activity: product category, purchase amount, frequency, and channel (online, in-store, or mixed).
 
 Devices & payments: which device they used (smartphone, desktop, tablet) and payment method (credit card, PayPal, cash, etc.).
-
-Shipping choices and payment frequency give a sense of convenience vs. cost priorities.
-
+ 
 #### Why they buy (or don’t)
 
 Loyalty: brand loyalty score, whether they’re in a loyalty program, and engagement with ads.
 
 Product feedback: customer satisfaction (1–10), product ratings, and return rate.
 
-Decision journey: time spent researching products, time taken to make a purchase decision, and whether it was impulsive or planned.
-
 External influence: impact of social media, discount sensitivity, and preference for promotions.
 
 
 ## Data analysis steps
-#### Step 1: Data Import & Performance Check
+### Step 1 – Importing Data & Checking Performance
 
-- Loaded the dataset ecb.csv using both Pandas and Polars.
-- Compared execution times to evaluate performance differences between the two libraries.
+I compared data ingestion speeds by timing each read_csv call wrapped with a timer using both Pandas and Polars on ecb.csv. Each timed dataframe is used for everything that follows.
 
-#### Step 2: Data Inspection
+### Step 2 – Data Inspection.
 
-- With Pandas: checked first rows, column info, summary statistics, and missing values.
-- With Polars: examined schema, descriptive statistics, and null counts.
-- Compared the inspection speed of Pandas vs. Polars.
+I quickly inspected the data using Pandas by calling head, info, describe, and checking for missing values and using Polars by calling the schema, describe, and null counts. These inspection calls were not benchmarked; only the reads were.
 
-#### Step 3: Filtering & Grouping
+### Step 3 – Filtering and Grouping.
 
-Case 1: Calculated average purchase amount grouped by Gender and Education Level.
+I converted Purchase_Amount to numeric and across the Gender × Education grid, in each library and appropriate Polars and Pandas, compared group-by timings on summarizing average spend. I then focused specifically on smartphone shoppers and used average satisfaction and payment method to calculate satisfaction, number of purchases, and timed in Pandas and Polars for both these operations.
 
-Case 2: Focused on smartphone shoppers, grouped by Payment Method, and computed: 
-        -  Average customer satisfaction
-        -  Purchase count per payment method
-Implemented in both Pandas and Polars, with timing comparisons.
+### Step 4 – Machine Learning Model.
 
-#### Step 4: Machine Learning- Random Forest Regressor
+I trained a Random Forest to predict purchase amount, using the data set’s behavioral signals and basic demographics. I dropped rows with missing values, label-encoded the categorical variables, and then split the data 80/20 with a fixed seed. In the end, I reported the RMSE and R² and feature importances to evaluate the model and determine the most influential factors.
 
-- Selected features: product rating, return rate, purchase channel, discount sensitivity, brand loyalty, loyalty program membership, social media influence, purchase intent, age, and income level.
-- Target variable: purchase amount.
-- Encoded categorical features using LabelEncoder.
-- Split data into training and testing sets (80/20 split).
-- Trained a RandomForestRegressor with 300 estimators.
-- Evaluated the model using RMSE and R², and extracted feature importance rankings.
+### Step 5: Visualization
 
-#### Step 5: Visualization
+Graph 1: Heatmap — mean Purchase_Amount by Gender and Education_Level .
 
-Graph 1: Pie chart of shopping device distribution.
-
-Graph 2: Bar chart of average customer satisfaction by income level.
+Graph 2: Ranked horizontal bar chart — Average Purchase Amount by Purchase Category.
 
 
 ## Outcomes
-1. Performance: Pandas ran faster than Polars for both reading and grouping operations.
-    
-2. Data inspection: The dataset contained missing values mainly in Engagement_with_Ads and Social_Media_Influence. Pandas reported 503 nulls, while Polars reported none, showing differences in how the libraries treat nulls.
-
-3. Grouping analysis:
-- Average purchase amounts showed large variation by gender and education level, with Polygender + High School averaging close to 400, the highest among groups.
-  
-- Among smartphone shoppers, PayPal users had the highest satisfaction (~5.79), while cash users scored the lowest (~5.00).
-
-4. Machine learning attempt:
-
-Random Forest struggled to predict purchase amounts (RMSE ~143, R² < 0). Still, feature importances highlighted which factors mattered most: Age, Product Rating, Brand Loyalty, and Purchase Intent ranked highest, while loyalty program membership had little impact.
-
-5. Visualizations:
-- Device usage was fairly balanced across desktop, tablet, and smartphone.
-- Middle-income customers reported slightly higher satisfaction than high-income ones, suggesting income is not the only driver of satisfaction.
+In general, Pandas outperformed Polars in my read and group-by operations, making it the more convenient engine for iteration in this scenario. The data verification revealed inconsistent null handling (Pandas identified around 503 missing values in several engagement fields, whereas Polars did not), which I will normalize prior to more intensive modeling. Aggregated findings indicate a genuine gender × education interplay—Female-High School ranks highest (~292), followed by Male-Bachelor’s (~287)—and among smartphone buyers, PayPal users indicate the highest satisfaction while cash users report the lowest. The Random Forest baseline poorly accounted for AOV (low R²), yet it still identified age, product rating, brand loyalty, and purchase intent as the most significant signals, while category spending is evidently focused (Software & Apps, Jewelry, Books). Next task: synchronize NA parsing and incorporate memory profiling, formally assess the interaction, apply log-AOV and more robust models (e.g., XGBoost with CV), and delve into payment × category to suggest minor, testable segments.
